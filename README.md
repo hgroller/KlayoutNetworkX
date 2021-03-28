@@ -1,5 +1,5 @@
 # KlayoutNetworkX
-Klayout Routing with NetworkX
+
 Utilizing Klayout and NetworkX to realize a basic router for Klayout
 
 About Klayout 
