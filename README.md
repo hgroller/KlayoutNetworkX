@@ -7,6 +7,7 @@ KLayout - Your Mask Layout Friend
 https://www.klayout.de/
 
 About NetworkX
+Download Package here
 https://networkx.org/
 
 NetworkX is a Python package for the creation,
@@ -16,17 +17,19 @@ dynamics, and functions of complex networks.
 
 Following files and package are in this git
 ````
-networkx
-ArrayLabels.lym
 decorator.py
+ArrayLabels.lym
 NX_ROUTE.lym
 Nx_Router.py
 TGPcell.lym
 tech.lyp
 TestingRoute.gds
+
 ````
 
 Copy networkx python package and decorator.py
+Download the networkx package here https://networkx.org/ 
+
 to the following location of your Klayout Installation in Windows
 C:\Users\your_path\AppData\Roaming\KLayout\lib\python3.7
 
