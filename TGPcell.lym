@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category/>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>true</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>ruby</interpreter>
+ <dsl-interpreter-name/>
+ <text>
+
+  # TG PCell
+#this utilizes the dummy PDK provided by Matthias via 
+#via github https://github.com/klayoutmatthias/si4all
+#This sample PCell implements a library called "TGPCellLibrary" with mutiple PCell's that
+#provides an array of Boxes, Circles and combined Box Circle
+#This can be extended, currently uses a checkerboard pattern
+
+module TGPCellLibrary
+
+  include RBA
+
+  # Remove any definition of our classes (this helps when 
+  # reexecuting this code after a change has been applied)
+  TGPCellLibrary.constants.member?(:TGPCellLibrary)     &amp;&amp; remove_const(:TGPCellLibrary)
+  TGPCellLibrary.constants.member?(:TGPCellBox)          &amp;&amp; remove_const(:TGPCellBox)
+  TGPCellLibrary.constants.member?(:TGPCellCircle)       &amp;&amp; remove_const(:TGPCellCircle)
+  TGPCellLibrary.constants.member?(:TGPCellBoxCircle)  &amp;&amp; remove_const(:TGPCellBoxCircle)
+  
+   # The PCell declaration for BoxCircle
+  class TGPCellBoxCircle &lt; PCellDeclarationHelper
+
+    include RBA
+
+    def initialize
+
+      # Important: initialize the super class
+      super
+
+      # declare the parameters
+      # l : Layer 
+      # sq : size of square to be arrayed
+      # nr : Number of rows
+      # nc: Number of Columns
+      # p: Pitch
+
+      param(:b, TypeLayer, "Box Layer", :default =&gt; LayerInfo::new(1, 0))
+      param(:c, TypeLayer, "Circle Layer", :default =&gt; LayerInfo::new(1, 0))
+      param(:sq, TypeDouble, "Square size ", :default =&gt; 5, :unit =&gt; "µm")
+      param(:nc, TypeInt, "Number of Columns", :default =&gt; 5) 
+      param(:nr, TypeInt, "Number of Rows", :default =&gt; 5)
+      param(:p, TypeDouble, "Pitch", :default =&gt; 20, :unit =&gt; "µm")
+    end
+
+    def display_text_impl 
+      # Provide a descriptive text for the cell ???
+      "TGPCellBoxCircle(B=#{b.to_s},C=#{c.to_s},N=#{'%d' % nr.to_i})"
+    end
+
+    def produce_impl
+      # Define shape step
+      x = 0.0
+      y = 0.0
+      # s: vertical stepping pitch 
+      s = Math::sqrt((p*p)-((p/2)*(p/2))) 
+
+      # row loop
+      nr.times do |j|
+
+        # Column loop
+        nc.times do |i|
+
+          # shapes to be looped
+
+          # selects all "white" fields in a chess board          
+          if (i + j) % 2 == 0
+            cell.shapes(b_layer).insert(RBA::DBox::new(x, y,x+sq,y+sq ))
+            #Finally, if you want to produce circles instead of boxes use:
+            cell.shapes(c_layer).insert(RBA::DPolygon::ellipse(RBA::DBox::new(x, y,x+sq,y+sq), 100))
+          end
+
+          x = x+p/2
+
+          # end column loop
+        end
+
+        x=0
+        y = y+s
+
+        # end row loop
+      end
+
+    end
+
+  end
+
+  
+  
+  
+  # The PCell declaration for Circle
+  class TGPCellCircle &lt; PCellDeclarationHelper
+
+    include RBA
+
+    def initialize
+
+      # Important: initialize the super class
+      super
+
+      # declare the parameters
+      # l : Layer 
+      # sq : size of square to be arrayed
+      # nr : Number of rows
+      # nc: Number of Columns
+      # p: Pitch
+
+      param(:l, TypeLayer, "Layer", :default =&gt; LayerInfo::new(1, 0))
+      param(:sq, TypeDouble, "Square size", :default =&gt; 5, :unit =&gt; "µm")
+      param(:nc, TypeInt, "Number of Columns", :default =&gt; 5) 
+      param(:nr, TypeInt, "Number of Rows", :default =&gt; 5)
+      param(:p, TypeDouble, "Pitch", :default =&gt; 20, :unit =&gt; "µm")
+    end
+
+    def display_text_impl 
+      # Provide a descriptive text for the cell ???
+      "TGPCellCircle(L=#{l.to_s},N=#{'%d' % nr.to_i})"
+    end
+
+    def produce_impl
+      # Define shape step
+      x = 0.0
+      y = 0.0
+      # s: vertical stepping pitch 
+      s = Math::sqrt((p*p)-((p/2)*(p/2))) 
+      #s = Math::sqrt((p*p)-((p)*(p))) 
+      # row loop
+      nr.times do |j|
+
+        # Column loop
+        nc.times do |i|
+
+          # shapes to be looped
+
+          # selects all "white" fields in a chess board          
+          if (i + j) % 2 == 0
+            #cell.shapes(l_layer).insert(RBA::DBox::new(x, y,x+sq,y+sq ))
+            #Finally, if you want to produce circles instead of boxes use:
+            cell.shapes(l_layer).insert(RBA::DPolygon::ellipse(RBA::DBox::new(x, y,x+sq,y+sq), 500))
+          end
+
+          x = x+p/2
+         # end column loop
+        end
+
+        x=0
+        y = y+s
+
+        # end row loop
+      end
+
+    end
+
+  end
+
+  # The PCell declaration for Box
+  class TGPCellBox &lt; PCellDeclarationHelper
+
+    include RBA
+
+    def initialize
+
+      # Important: initialize the super class
+      super
+
+      # declare the parameters
+      # l : Layer 
+      # sq : size of square to be arrayed
+      # nr : Number of rows
+      # nc: Number of Columns
+      # p: Pitch
+
+      param(:l, TypeLayer, "Layer", :default =&gt; LayerInfo::new(1, 0))
+      param(:sq, TypeDouble, "Square size", :default =&gt; 5, :unit =&gt; "µm")
+      param(:nc, TypeInt, "Number of Columns", :default =&gt; 5) 
+      param(:nr, TypeInt, "Number of Rows", :default =&gt; 5)
+      param(:p, TypeDouble, "Pitch", :default =&gt; 20, :unit =&gt; "µm")
+    end
+
+    def display_text_impl 
+      # Provide a descriptive text for the cell ???
+      "TGPCellBox(L=#{l.to_s},N=#{'%d' % nr.to_i})"
+    end
+
+    def produce_impl
+      # Define shape step
+      x = 0.0
+      y = 0.0
+      # s: vertical stepping pitch 
+      s = Math::sqrt((p*p)-((p/2)*(p/2))) 
+
+      # row loop
+      nr.times do |j|
+
+        # Column loop
+        nc.times do |i|
+
+          # shapes to be looped
+
+          # selects all "white" fields in a chess board          
+          if (i + j) % 2 == 0
+            cell.shapes(l_layer).insert(RBA::DBox::new(x, y,x+sq,y+sq ))
+          end
+
+          x = x+p/2
+
+          # end column loop
+        end
+
+        x=0
+        y = y+s
+
+        # end row loop
+      end
+
+    end
+
+  end
+
+  # The library where we will put the PCell into 
+  class TGPCellLibrary &lt; Library
+
+    def initialize 
+
+      # Set the description
+      self.description = "TG PCell Library"
+
+      # Create the PCell declarations
+      layout.register_pcell("TGPCellBox", TGPCellBox::new)
+      layout.register_pcell("TGPCellCircle", TGPCellCircle::new)
+      layout.register_pcell("TGPCellBoxCircle", TGPCellBoxCircle::new)
+      # That would be the place to put in more PCells ...
+
+      # Register us with the name "MyLib".
+      # If a library with that name already existed, it will be replaced then.
+      register("TGPCellLibrary")
+
+    end
+
+  end
+
+  # Instantiate and register the library
+  TGPCellLibrary::new
+
+end
+
+
+</text>
+</klayout-macro>

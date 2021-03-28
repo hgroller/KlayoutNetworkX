@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>Load Router</description>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>true</autorun-early>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># Enter your Python code here
+#Python Proof of Concept for  Graph Routing
+#Tracy Groller 
+#Created on Thu Mar 27 00:24:41 2021
+#Tracy Groller for Klayout Routing
+#Basic Implmentation of  Shortest Path Routing
+#Using the networkx package
+#NetworkX is a Python package for the creation, manipulation,
+#and study of the structure, dynamics, and functions of complex networks.
+#ToDo: Vertical and Horizontal metals Done
+#          Drop vias at intersection         In Progress
+#          Add Maze array definition based on the Border Layer Done
+#          Add Obstructions
+# 3/27/21 6:00 AM CST got the router working sans vias
+
+import pya
+import numpy as np
+import array
+import sys
+import math
+import time
+import itertools
+from importlib import reload
+from collections import OrderedDict, Counter
+import itertools
+
+class OrderedCounter(Counter, OrderedDict): 
+    pass
+    
+#Edit this too reflect you install path for Klayout
+sys.path.append("C:/Users/Tracy/KLayout/pymacros")
+import Nx_Router
+
+#Reload main if changed in 
+reload(Nx_Router)
+from Nx_Router import nxRoute
+
+mw = pya.Application.instance().main_window()
+layout = pya.Application.instance().main_window().current_view().active_cellview().layout() 
+topcell = pya.Application.instance().main_window().current_view().active_cellview().cell
+
+if layout == None:
+  raise Exception("No layout")
+
+cv = pya.Application.instance().main_window().current_view().active_cellview()
+dbu =layout.dbu
+
+cell = pya.Application.instance().main_window().current_view().active_cellview().cell
+if cell == None:
+  raise Exception("No cell")
+
+#Get the  Box Border
+def GetBox():
+  texts = 0
+  layer_info = LayerInfo.new(13,0)
+  layer = layout.layer(layer_info) 
+  iter = layout.begin_shapes(cv.cell_index, layer)
+  if iter.shape().is_box():
+    ux =  iter.shape().box.right
+    uy =  iter.shape().box.top
+  return ux,uy  
+
+def Get_Text():
+  #Get the Text
+  texts = 0
+  layer_info = LayerInfo.new(9,0)
+  layer = layout.layer(layer_info) 
+  iter = layout.begin_shapes(cv.cell_index, layer)
+  coords = []
+  strlst = []
+  while not iter.at_end():
+    if iter.shape().is_text():
+      string =  iter.shape().text.string
+      x = iter.shape().text.x
+      y = iter.shape().text.y
+      strlst.append(string)
+      lst = [string,x,y]
+      coords.append(lst)
+    iter.next()
+
+  srt = sorted(coords)
+ #Remove Duplicates from text list
+  strlst = sorted(list(dict.fromkeys(strlst)))
+  return strlst,srt
+
+def coords(path):
+    result = []
+    for p in path:
+      result.append(DPoint.new(p[0]/dbu,p[1]/dbu))
+    return result
+
+def create_path(crd,wd,lay):
+  wdt = wd
+  layer_info = LayerInfo.new(lay,0)
+  layer_index = layout.layer(layer_info)
+  cv.cell.shapes(layer_index).insert(Path.new(crd,wd/dbu))   
+
+def create_box(crd,lay):
+  layer_info = LayerInfo.new(lay,0)
+  layer_index = layout.layer(layer_info)
+  cv.cell.shapes(layer_index).insert(Box.new(crd[0],crd[1]))
+
+def BuildMaze(pth):
+  #Build Maze based on  Border Boundary Box
+  rows = int(pth[1][0]) +  50 #ux from Border Box  add padding
+  cols = int(pth[1][1])  +  50#uy from Border Box  add padding
+  w, h = rows, cols;
+  Matrix = [[0 for x in range(w)] for y in range(h)] 
+  return Matrix
+
+def BuildObst():
+
+  layer_info = LayerInfo.new(9,0)
+  layer_index = layout.layer(layer_info)
+  layer = layer_index  # the layer index from which you want to take the polygons
+
+# creates a region containing all polygons from the cell's layer plus all the
+# polygons from it's children.
+
+  shapes = pya.Region.new(cell.begin_shapes_rec(layer))
+  shape = []
+  si = layout.cell(layout.cell_by_name(topcell.name)).begin_shapes_rec(layer)
+
+  while not si.at_end():
+    bbox = si.shape().bbox().center()
+    x = bbox.x*layout.dbu
+    y = bbox.y*layout.dbu
+    shape.append([x,y])
+    #print("X %.2f:Y %.2f " % (x,y))
+    si.next()
+  return shape
+#return shape
+
+#Graph Routing Shortest Path
+def NxRouter():
+  starttime = time.time()
+  
+  stlst,srt = Get_Text()
+  filtered = None
+  
+  
+  lay = 13 # Get Border
+  path = topcell.dbbox() 
+  pth = [(path.bottom ,path.left),(path.right,path.top)] 
+  crd = coords(pth)
+  create_box(crd,lay)
+    
+  matrix = BuildMaze(pth)
+  #obst = BuildObst()
+  #obst =sorted(obst, key=lambda x: x[0])
+  #Add Obstruction 
+  #print(obst)
+ #for n in obst:
+     #matrix[n[0]][n[1]] = 1
+    # print(n)
+  #for n in matrix:
+    #print(n)
+  
+  #print(matrix)
+  #print("Wait")
+  
+  for search in stlst: 
+    filtered = list(filter(lambda x:x[0]==search,srt))
+    
+    #mw.menu.action("zoom_menu.redraw").trigger
+
+    #Testing
+     
+    l1  = filtered[0][1]/1000
+    l2  = filtered[0][2]/1000
+    
+    l3  = filtered[1][1]/1000
+    l4  = filtered[1][2]/1000
+    
+    #Get Decimal from float
+    x1a = l1 - int(l1)
+    y1a = l2 - int(l2)
+    x2a = l3 - int(l3)
+    y2a = l4 - int(l4)
+   
+    lc1  = int(filtered[0][1]/1000)
+    lc2  = int(filtered[0][2]/1000)
+    lc3  = int(filtered[1][1]/1000)
+    lc4  = int(filtered[1][2]/1000)
+   
+    loc1 = (lc1,lc2)
+    loc2 = (lc3,lc4)
+   
+    starttime = time.time()
+    pth =Nx_Router.nxRoute(matrix,loc1,loc2)
+    print('That took {} seconds'.format(time.time() - starttime))
+  #Parse in the Vert/Horz Coords
+    vert = [el[0] for el in pth]
+    horz = [el[1] for el in pth]
+
+    hoz = [k for k, v in OrderedCounter(horz).items() if v &gt; 1]
+    vet = [k for k, v in OrderedCounter(vert).items() if v &gt; 1]
+
+   
+    #Build the Route Point to Point
+    cnt = 1
+    lay = 9
+    wd = .25
+    hlen = len(hoz)
+    for p in hoz:
+      filteredh = list(filter(lambda x:x[1]==p,pth))
+      if cnt != hlen:
+        M = [x1a,y1a]
+        hout = [[i+j for i,j in zip(subl, subm)] for subl, subm in zip(filteredh, itertools.cycle([M]))]
+        #make one path
+        hl = len(hout) - 1
+        hf = hout[0]
+        hl = hout[hl]
+        hc = [hf,hl]
+        crd = coords(hc)
+        create_path(crd,wd,lay)
+        cnt = cnt + 1
+      else:
+         M = [x1a,y1a]
+         hout = [[i+j for i,j in zip(subl, subm)] for subl, subm in zip(filteredh, itertools.cycle([M]))]
+         #make one path
+         hl = len(hout) - 1
+         hf = hout[0]
+         hl = hout[hl]
+         hc = [hf,hl]
+         xx = x2a - x1a
+         xxx = hc[1][0] + xx
+         hc[1][0] = xxx
+         yy = y2a - y1a
+         yyy = hc[1][1] + yy
+         hc[0][1] = yyy
+         hc[1][1] = yyy
+         crd = coords(hc)
+         create_path(crd,wd,lay)         
+      
+  
+    cnt = 1
+    lay = 11
+    vlen = len(vet)
+    
+
+    for p in vet: 
+      filteredv = list(filter(lambda x:x[0]==p,pth))
+      if cnt != vlen:
+          M = [x1a,y1a]
+          #sorts X,Y
+          vout = [[i+j for i,j in zip(subl, subm)] for subl, subm in zip(filteredv, itertools.cycle([M]))]
+         #make one path
+          vl = len(vout) - 1
+          vf = vout[0]
+          vl = vout[vl]
+          vc = [vf,vl]
+          crd = coords(vc)
+          create_path(crd,wd,lay)
+          cnt = cnt + 1
+     #Build Metal1/2 Overlap
+          mwd =  wd / 2
+          vwd = wd / 4
+          x1 =  abs(int(crd[0].x)/1000)
+          y1 =  abs(int(crd[0].y)/1000)
+          x2 =  abs(int(crd[1].x)/1000)
+          y2 =  abs(int(crd[1].y)/1000)
+     #Metals
+          lx1 = x1 - mwd
+          ly1 = y1 - mwd
+          ux1 = x1 + mwd
+          uy1 = y1 + mwd
+    
+          lx2 = x2 - mwd
+          ly2 = y2 - mwd
+          ux2 = x2 + mwd
+          uy2 = y2 + mwd
+     
+      #Via
+          vx1 = x1 - vwd
+          vy1 = y1 - vwd
+          vux1 = x1 + vwd
+          vuy1 = y1 + vwd
+    
+          vx2 = x2 - vwd
+          vy2 = y2 - vwd
+          vux2 = x2 + vwd
+          vuy2 = y2 + vwd
+     
+     #Metals1/2
+          path1 = [(lx1,ly1),(ux1,uy1)]
+       #M = [x1a,y1a]
+      #out = [[i+j for i,j in zip(subl, subm)] for subl, subm in zip(path1, itertools.cycle([M]))]
+          crd1 = coords(path1)
+          lay = 9
+          create_box(crd1,lay)
+          lay = 11
+          create_box(crd1,lay)
+     #Via
+          via1 = [(vx1,vy1),(vux1,vuy1)]
+          vcrd1 = coords(via1)
+          lay = 10
+          create_box(vcrd1,lay)
+     
+     #Metals1/2
+          path2 = [(lx2,ly2),(ux2,uy2)]
+          crd2 = coords(path2)
+          lay = 9
+          create_box(crd2,lay)
+          lay = 11
+          create_box(crd2,lay)
+     
+     #Via
+          via2 = [(vx2,vy2),(vux2,vuy2)]
+          vcrd2 = coords(via2)
+          lay = 10
+          create_box(vcrd2,lay)
+
+      else:
+          M = [x1a,y1a]
+          vout = [[i+j for i,j in zip(subl, subm)] for subl, subm in zip(filteredv, itertools.cycle([M]))]
+         #make one path , do not change.
+          vl = len(vout) - 1
+          vf = vout[0]
+          vl = vout[vl]
+          vc = [vf,vl]
+          xx = y2a - y1a
+          xxx = vc[1][1] + xx
+          vc[1][1] = xxx
+          crd = coords(vc)
+          create_path(crd,wd,lay)
+
+     #Build Metal1/2 Overlap
+          mwd =  wd / 2
+          vwd = wd / 4
+          x1 =  abs(int(crd[0].x)/1000)
+          y1 =  abs(int(crd[0].y)/1000)
+          x2 =  abs(int(crd[1].x)/1000)
+          y2 =  abs(int(crd[1].y)/1000)
+     #Metals
+          lx1 = x1 - mwd
+          ly1 = y1 - mwd
+          ux1 = x1 + mwd
+          uy1 = y1 + mwd
+    
+          lx2 = x2 - mwd
+          ly2 = y2 - mwd
+          ux2 = x2 + mwd
+          uy2 = y2 + mwd
+     
+      #Via
+          vx1 = x1 - vwd
+          vy1 = y1 - vwd
+          vux1 = x1 + vwd
+          vuy1 = y1 + vwd
+    
+          vx2 = x2 - vwd
+          vy2 = y2 - vwd
+          vux2 = x2 + vwd
+          vuy2 = y2 + vwd
+     
+     #Metals1/2
+          path1 = [(lx1,ly1),(ux1,uy1)]
+          crd1 = coords(path1)
+          lay = 9
+          create_box(crd1,lay)
+          lay = 11
+          create_box(crd1,lay)
+     #Via
+          via1 = [(vx1,vy1),(vux1,vuy1)]
+          vcrd1 = coords(via1)
+          lay = 10
+          create_box(vcrd1,lay)
+     
+     #Metals1/2
+          path2 = [(lx2,ly2),(ux2,uy2)]
+          crd2 = coords(path2)
+          lay = 9
+          create_box(crd2,lay)
+          lay = 11
+          create_box(crd2,lay)
+     
+     #Via
+          via2 = [(vx2,vy2),(vux2,vuy2)]
+          vcrd2 = coords(via2)
+          lay = 10
+          create_box(vcrd2,lay)           
+          
+
+      
+action1 = pya.Action()
+action1.title = "NxRouter"
+action1.tool_tip = "NxRouter"
+action1.on_triggered(NxRouter)
+menu = pya.MainWindow.instance().menu()
+# Insert it main menu: where, name, action:
+menu.insert_item("tools_menu.end", "NxRouter", action1)
+# Insert into toolbar: for the router
+menu.insert_item("@toolbar.end", "NxRouter", action1)
+
+#progress = pya.RelativeProgress('Preparing Output Layers', len(cleanrules))
+#progress.format = 'Processed {} of {} layers'.format(0, len(cleanrules))
+
+
+
+</text>
+</klayout-macro>
