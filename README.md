@@ -59,3 +59,15 @@ The Pcell uses the 1000 marking layer as Pin targets , feel free to move the Pin
 around to test .
 
 To route the demo TestingRoute.gds click the NxRouter in the toolbar
+
+
+
+
+
+![before](https://user-images.githubusercontent.com/4467328/112764050-8b69d000-8fcc-11eb-8658-c04f92089feb.jpg)
+
+
+![after](https://user-images.githubusercontent.com/4467328/112764069-a50b1780-8fcc-11eb-8e42-8270e0a2ef60.jpg)
+
+
+
