@@ -34,6 +34,7 @@ to the following location of your Klayout Installation in Windows
 C:\Users\your_path\AppData\Roaming\KLayout\lib\python3.7
 
 For the Python and Ruby files you will need to install at these locations
+```
 Python goes into C:\Users\your_path\KLayout\pymacros
 NX_ROUTE.lym
 Nx_Router.py
@@ -41,7 +42,7 @@ Nx_Router.py
 Ruby goes into C:\Users\your_path\KLayout\macros
 ArrayLabels.lym
 TGPcell.lym
-
+````
 You will need to install Matthias great demo pdk
 and copy it too C:\Users\your_path\KLayout\salt
 Copy the tech.lyp file to C:\Users\your_path\KLayout\salt\si4all
