@@ -15,7 +15,7 @@ manipulation, and study of the structure,
 dynamics, and functions of complex networks.
 
 
-Following files and package are in this git
+Following files are in this git
 ````
 decorator.py
 ArrayLabels.lym
