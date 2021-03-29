@@ -24,6 +24,8 @@ Nx_Router.py
 TGPcell.lym
 tech.lyp
 TestingRoute.gds
+TestingRouteBuss.gds
+TestingRouteBlackBox.gds
 
 ````
 
