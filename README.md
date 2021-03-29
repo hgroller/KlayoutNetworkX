@@ -72,5 +72,8 @@ To route the demo TestingRoute.gds click the NxRouter in the toolbar
 
 ![after](https://user-images.githubusercontent.com/4467328/112764069-a50b1780-8fcc-11eb-8e42-8270e0a2ef60.jpg)
 
+![blackbox](https://user-images.githubusercontent.com/4467328/112780585-c55bc600-900e-11eb-99ae-1600e7ab47e8.jpg)
+
+
 
 
