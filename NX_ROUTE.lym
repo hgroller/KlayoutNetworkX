@@ -24,7 +24,7 @@
 #NetworkX is a Python package for the creation, manipulation,
 #and study of the structure, dynamics, and functions of complex networks.
 #ToDo: Vertical and Horizontal metals Done
-#          Drop vias at intersection         In Progress
+#          Drop vias at intersection         Done
 #          Add Maze array definition based on the Border Layer Done
 #          Add Obstructions
 # 3/27/21 6:00 AM CST got the router working sans vias
@@ -64,6 +64,80 @@ dbu =layout.dbu
 cell = pya.Application.instance().main_window().current_view().active_cellview().cell
 if cell == None:
   raise Exception("No cell")
+  
+  
+#Define Routing Channel's 
+def array_hpath(crd,wd,lay,spc,xcnt,ycnt):
+  wdt = wd
+  layer_info = LayerInfo.new(lay,0)
+  layer_index = layout.layer(layer_info)
+  
+  for py in range(0, ycnt):
+       y =  (py  -  0) * spc
+       print("Y count = ", y)
+       for px in range(0, xcnt):
+            x =  (px  -  0) * spc
+            y = y  
+            cv.cell.shapes(layer_index).insert(Path.new(crd,wd).moved(x, y))
+
+def array_vpath(crd,wd,lay,spc,xcnt,ycnt):
+  wdt = wd
+  layer_info = LayerInfo.new(lay,0)
+  layer_index = layout.layer(layer_info)
+  
+  for py in range(0, ycnt):
+       y =  (py  -  0) * spc
+       print("Y count = ", y)
+       for px in range(0, xcnt):
+            x =  (px  -  0) * spc
+            y = y 
+            cv.cell.shapes(layer_index).insert(Path.new(crd,wd).moved(x, y))
+
+bbox = topcell.dbbox() 
+wd = .25/dbu
+offset = wd / 1000 / 2
+
+lx =  bbox.bottom 
+ly =  bbox.left
+ux = bbox.right
+uy = bbox.top 
+
+path = [(0,offset),(ux,offset)]
+crd = coords(path)
+lay = 1002 #Htracks
+spc = 1/dbu
+xcnt = 1
+ycnt =  math.floor(uy) + 1
+array_hpath(crd,wd,lay,spc,xcnt,ycnt)
+
+path = [(offset,0),(offset,uy)]
+crd = coords(path)
+lay = 1003 #Vtracks
+spc = 1/dbu
+xcnt = math.floor(ux) + 1
+ycnt =  1
+array_vpath(crd,wd,lay,spc,xcnt,ycnt)
+
+def cut_channel(lay1,lay2):
+  lay1 = lay1
+  lif1 = LayerInfo.new(lay1,0)
+  li1 = layout.layer(lif1)
+
+  lay2 = lay2
+  lif2 = LayerInfo.new(lay2,0)
+  li2 = layout.layer(lif2)
+
+  r1 = pya.Region(topcell.begin_shapes_rec(li1))
+  r2 = pya.Region(topcell.begin_shapes_rec(li2))
+
+  outside = r1 -  r2
+
+  layout.clear_layer(li1)
+  output = layout.layer(lif1)
+  topcell.shapes(output).insert(outside)
+
+cut_channel(1002,1005)
+cut_channel(1003,1005)
 
 #Get the  Box Border
 def GetBox():
@@ -171,7 +245,6 @@ def NxRouter():
     # print(n)
   #for n in matrix:
     #print(n)
-  
   #print(matrix)
   #print("Wait")
   
@@ -397,7 +470,7 @@ def NxRouter():
           lay = 10
           create_box(vcrd2,lay)           
           
-
+#mw.redraw()
       
 action1 = pya.Action()
 action1.title = "NxRouter"
